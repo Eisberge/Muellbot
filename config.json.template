@@ -1,0 +1,17 @@
+{
+    "Bot": {
+        "Token": "BOT_TOKEN_LIKE_12345676:ABCDEF",
+        "PollingTime": 2
+    },
+    "User": {
+        "Developer": 123456789,
+        "User": [548918912, 123456789]
+    },
+    "Texte": {
+        "Rest" : "Leerung: Restabfall",
+        "Gelb" : "Leerung: Gelbe Tonne",
+        "Braun": "Leerung: Biomüll",
+        "Blau" : "Leerung: Papier und Pappe",
+        "Egal" : "Egal, gib mir die Eheste"
+    }
+}
