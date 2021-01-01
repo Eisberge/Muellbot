@@ -8,10 +8,10 @@
         "User": [548918912, 123456789]
     },
     "Texte": {
-        "Rest" : "Leerung: Restabfall",
-        "Gelb" : "Leerung: Gelbe Tonne",
-        "Braun": "Leerung: Biomüll",
-        "Blau" : "Leerung: Papier und Pappe",
-        "Egal" : "Egal, gib mir die Eheste"
+        "Rest" : ["Restabfall", "Leerung: Restabfall"],
+        "Gelb" : ["Gelbe Tonne", "Leerung: Gelbe Tonne"],
+        "Braun": ["Biomüll", "Leerung: Biomüll"],
+        "Blau" : ["Papier", "Leerung: Papier und Pappe"],
+        "Egal" : ["++ nächste ++", "Egal, gib mir die Eheste"]
     }
 }
