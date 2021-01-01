@@ -43,63 +43,77 @@ BACK, END = range(10, 12)
 # Read the config from JSON
 config = readconfig()
 
+# States
+START, TERMINABFRAGE, NEUEDATEN = range(3)
+BACK, END = range(10, 12)
+
+
+def create_button(description: str, callback: Any) -> InlineKeyboardButton:
+    return InlineKeyboardButton(description, callback_data=str(callback))
+
+
+def create_keyboard(raw_data: List[List[List[Any]]]) -> List[List[InlineKeyboardButton]]:
+    menu_neu = list()
+    for raw_zeile in raw_data:
+        zeile_neu = list()
+        menu_neu.append(zeile_neu)
+
+        for spalte_list in raw_zeile:
+            zeile_neu.append(create_button(spalte_list[0], spalte_list[1]))
+    return menu_neu
+
 
 def start(update: Update, context: CallbackContext):
+    keyboard = [
+        [["Abfrage", TERMINABFRAGE], ["Neue Termine", NEUEDATEN]],
+        [["Ende", END]]
+    ]
     logger.info(f"User started conversation")
     logger.info(f"Username {update.message.from_user}")
-    keyboard = [
-        [InlineKeyboardButton("Abfrage", callback_data=str(TERMINABFRAGE)),
-         InlineKeyboardButton("Neue Termine", callback_data=str(NEUEDATEN))],
-        [InlineKeyboardButton("Ende", callback_data=str(END))]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text(
         "Womit kann ich helfen?",
-        reply_markup=reply_markup)
+        reply_markup=InlineKeyboardMarkup(create_keyboard(keyboard)))
     return START
 
 
 def start_over(update: Update, context: CallbackContext):
+    keyboard = [
+        [["Abfrage", TERMINABFRAGE], ["Neue Termine", NEUEDATEN]],
+        [["Ende", END]]
+    ]
+    # Answer query as usual
     query = update.callback_query
     query.answer()
-    keyboard = [
-        [InlineKeyboardButton("Abfrage", callback_data=str(TERMINABFRAGE)),
-         InlineKeyboardButton("Neue Termine", callback_data=str(NEUEDATEN))],
-        [InlineKeyboardButton("Ende", callback_data=str(END))]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(text="Weißt ja, wie das geht...", reply_markup=reply_markup)
+    query.edit_message_text(
+        text="Weißt ja, wie das geht...",
+        reply_markup=InlineKeyboardMarkup(create_keyboard(keyboard)))
     return START
 
 
 def start_abfrage(update: Update, context: CallbackContext):
+    # Answer query as usual
     query = update.callback_query
     query.answer()
-    keyboard = [
-        [InlineKeyboardButton("Restabfall", callback_data=str(config["Texte"]["Rest"]))],
-        [InlineKeyboardButton("Gelbe Tonne", callback_data=str(config["Texte"]["Gelb"]))],
-        [InlineKeyboardButton("Biotonne", callback_data=str(config["Texte"]["Braun"]))],
-        [InlineKeyboardButton("Papier und Pappe", callback_data=str(config["Texte"]["Blau"]))],
-        [InlineKeyboardButton("+ nächste +", callback_data=str(config["Texte"]["Egal"]))]
-    ]
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    keyboard = list()
+    for liste in config["Texte"].values():  # type: List[str, str]
+        # liste: ["Restabfall", "Leerung: Restabfall"]
+        keyboard.append([create_button(liste[0], liste[1])])
     query.edit_message_text(
-        text="Welche Art denn?", reply_markup=reply_markup
+        text="Welche Art denn?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return TERMINABFRAGE
 
 
 def do_abfrage(update: Update, context: CallbackContext):
+    # Answer query as usual
     query = update.callback_query
     query.answer()
-    keyboard = [
-        [InlineKeyboardButton("zurück", callback_data=str(BACK))]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    keyboard = [[create_button("zurück", BACK)]]
 
+    # Get Today
     heute = (datetime.datetime.today()).strftime("%Y%m%d")
-    beschreibung = "*" if query.data == config["Texte"]["Egal"] else query.data
+    beschreibung = "*" if query.data == config["Texte"]["Egal"][1] else query.data
     sql = f"""SELECT Termin  
           FROM Calendar 
           WHERE 
@@ -113,17 +127,18 @@ def do_abfrage(update: Update, context: CallbackContext):
         erg = f"Abfrage ergab kein Ergebnis - keine Termine mehr übrig oder Fehler.\n\n{sql}"
     else:
         resultday = datetime.datetime.strptime(str(result[0][0]), "%Y%m%d")
-
         erg = f"""Die nächste Abholung ist am {resultday.strftime('%A, %d.%m.%Y')}\n
               Das sind noch {((resultday - datetime.datetime.today()).days + 1)} Tage"""
-    query.edit_message_text(text=erg, reply_markup=reply_markup)
+    query.edit_message_text(
+        text=erg,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return NEUEDATEN
 
 
 def daily_message(context: CallbackContext):
     #  context.bot.sendMessage(chat_id=context.job.context, text="Hey")
     #  context.bot.sendMessage(chat_id=DEVELOPER_CHAT_ID, text="Hey")
-
     morgen = (datetime.datetime.today() + datetime.timedelta(days=1)).strftime("%Y%m%d")
     sql = f"SELECT Beschreibung FROM Calendar WHERE Termin={morgen}"
     logger.info(f"SQL was {sql}")
@@ -143,14 +158,14 @@ def daily_message(context: CallbackContext):
 
 
 def start_dateninput(update: Update, context: CallbackContext):
+    # Answer query as usual
     query = update.callback_query
     logger.info(f"Anfrage von {query.from_user}...")
     query.answer()
-    keyboard = [[InlineKeyboardButton("zurück", callback_data=str(BACK))]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    keyboard = [[create_button("zurück", BACK)]]
     query.edit_message_text(
         text="Schick mir bitte die CSV-Datei...",
-        reply_markup=reply_markup
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return NEUEDATEN
 
@@ -159,8 +174,7 @@ def do_dateninput(update: Update, context: CallbackContext):
     # CSV download
     # Delete content of database
     # Insert new values into database
-    keyboard = [[InlineKeyboardButton("zurück", callback_data=str(BACK))]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    keyboard = [[create_button("zurück", BACK)]]
 
     # Download CSV
     datafile = update.message.document.get_file()
@@ -181,11 +195,10 @@ def do_dateninput(update: Update, context: CallbackContext):
         # Insert into DB
         sql = "INSERT INTO Calendar (Beschreibung, Termin) VALUES (?, ?);"
         result = dbexecmany(sql, to_db)
-
     message = "Datenbasis wurde aktualisiert!" if result else "Fehler bei der Aktualisierung"
     update.message.reply_text(
         text=message,
-        reply_markup=reply_markup
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return NEUEDATEN
 
@@ -205,9 +218,6 @@ def end(update: Update, context: CallbackContext):
 
 
 def main():
-    global config
-    config = readconfig()
-
     # Create the var updater of Updater
     updater = Updater(config["Bot"]["Token"])
 
@@ -235,7 +245,7 @@ def main():
     # ...register them
     dp.add_handler(conv_handler)
     # ...and the error handler
-    #dp.add_error_handler(error_handler)
+    dp.add_error_handler(error_handler)
 
     # Create daily job
     t = datetime.time(19, 0, 0, tzinfo=pytz.timezone("Europe/Berlin"))

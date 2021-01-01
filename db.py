@@ -1,17 +1,10 @@
 #!/usr/bin/env python
 import sqlite3
 import os.path
-import logging
-
-# Enable logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(funcName)s: %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+from applogging import section_logger
 
 
-DBFILE = "telegram_calendar.db"
+DBFILE = "calendar.db"
 
 
 def dbcreate():
@@ -85,7 +78,7 @@ def dbfetch(sql):
     return False
 
 
-def dbclose(connection):
+def dbclose(connection) -> bool:
     if connection:
         connection.close()
         return True
